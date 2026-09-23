@@ -94,7 +94,7 @@ export const PLANET_TYPES = [
     type: '岩石行星',
     baseColor: 0x8c7853,
     detail: 'rocky',
-    sizeRange: [1.5, 2.5],
+    sizeRange: [1.05, 1.4],
   },
   {
     id: 'venus',
@@ -102,7 +102,7 @@ export const PLANET_TYPES = [
     type: '岩石行星',
     baseColor: 0xe6c87a,
     detail: 'cloudy',
-    sizeRange: [2, 3],
+    sizeRange: [1.2, 1.6],
   },
   {
     id: 'earth',
@@ -110,7 +110,7 @@ export const PLANET_TYPES = [
     type: '类地行星',
     baseColor: 0x4a90d9,
     detail: 'earth',
-    sizeRange: [2.5, 3.5],
+    sizeRange: [1.5, 1.9],
   },
   {
     id: 'mars',
@@ -118,7 +118,7 @@ export const PLANET_TYPES = [
     type: '岩石行星',
     baseColor: 0xcd5c5c,
     detail: 'desert',
-    sizeRange: [1.8, 2.8],
+    sizeRange: [1.05, 1.4],
   },
   {
     id: 'jupiter',
@@ -126,7 +126,7 @@ export const PLANET_TYPES = [
     type: '气态巨行星',
     baseColor: 0xdaa06d,
     detail: 'gas',
-    sizeRange: [6, 9],
+    sizeRange: [4.4, 5.8],
   },
   {
     id: 'saturn',
@@ -135,7 +135,7 @@ export const PLANET_TYPES = [
     baseColor: 0xfad6a5,
     detail: 'gas',
     hasRings: true,
-    sizeRange: [5, 8],
+    sizeRange: [4, 5.2],
   },
   {
     id: 'uranus',
@@ -143,7 +143,7 @@ export const PLANET_TYPES = [
     type: '冰巨行星',
     baseColor: 0x87ceeb,
     detail: 'ice',
-    sizeRange: [3.5, 5],
+    sizeRange: [2.9, 3.8],
   },
   {
     id: 'neptune',
@@ -151,7 +151,7 @@ export const PLANET_TYPES = [
     type: '冰巨行星',
     baseColor: 0x4169e1,
     detail: 'ice',
-    sizeRange: [3.5, 5],
+    sizeRange: [2.9, 3.8],
   },
 ];
 

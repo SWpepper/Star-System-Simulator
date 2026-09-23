@@ -41,14 +41,14 @@ function toLowerRoman(value) {
   return toRoman(value).toLowerCase();
 }
 const SOLAR_SYSTEM = [
-  { name: '水星', typeId: 'mercury', distanceAu: 0.39, radius: 1.8, mass: 0.055, moons: 0 },
-  { name: '金星', typeId: 'venus', distanceAu: 0.72, radius: 2.5, mass: 0.815, moons: 0 },
-  { name: '地球', typeId: 'earth', distanceAu: 1, radius: 2.8, mass: 1, moons: 1 },
-  { name: '火星', typeId: 'mars', distanceAu: 1.52, radius: 2, mass: 0.107, moons: 2 },
-  { name: '木星', typeId: 'jupiter', distanceAu: 5.2, radius: 7.5, mass: 317.8, moons: 4 },
-  { name: '土星', typeId: 'saturn', distanceAu: 9.5, radius: 6.5, mass: 95.2, moons: 3 },
-  { name: '天王星', typeId: 'uranus', distanceAu: 19.2, radius: 4, mass: 14.5, moons: 2 },
-  { name: '海王星', typeId: 'neptune', distanceAu: 30, radius: 3.8, mass: 17.1, moons: 1 },
+  { name: '水星', typeId: 'mercury', distanceAu: 0.39, radius: 1.0, mass: 0.055, moons: 0 },
+  { name: '金星', typeId: 'venus', distanceAu: 0.72, radius: 1.45, mass: 0.815, moons: 0 },
+  { name: '地球', typeId: 'earth', distanceAu: 1, radius: 1.7, mass: 1, moons: 1 },
+  { name: '火星', typeId: 'mars', distanceAu: 1.52, radius: 1.15, mass: 0.107, moons: 2 },
+  { name: '木星', typeId: 'jupiter', distanceAu: 5.2, radius: 5.6, mass: 317.8, moons: 4 },
+  { name: '土星', typeId: 'saturn', distanceAu: 9.5, radius: 4.9, mass: 95.2, moons: 3 },
+  { name: '天王星', typeId: 'uranus', distanceAu: 19.2, radius: 3.4, mass: 14.5, moons: 2 },
+  { name: '海王星', typeId: 'neptune', distanceAu: 30, radius: 3.3, mass: 17.1, moons: 1 },
 ];
 
 function createId(kind, seed, index) {
@@ -84,7 +84,7 @@ function createStar({ rng, seed, index, nameSuffix = '' }) {
     massKg: SOLAR_MASS * massMultiplier,
     orbit: null,
     render: {
-      radiusWorld: 6 + Math.sqrt(massMultiplier) * 4,
+      radiusWorld: 8 + Math.pow(massMultiplier, 0.34) * 5.2,
       appearance: starType.id,
       baseColor: starType.color,
       glowColor: starType.glowColor,
@@ -146,7 +146,7 @@ function createPlanet({
 
 function createMoon({ rng, planet, index, solarMoon = null }) {
   const moonName = solarMoon?.name ?? `${planet.name}-${toLowerRoman(index + 1)}`;
-  const radius = solarMoon?.radius ?? rng.range(0.4, 1);
+  const radius = solarMoon?.radius ?? rng.range(0.18, 0.35);
   const massEarth = solarMoon?.massEarth ?? 0.01;
   const periodYears = solarMoon?.periodYears ?? rng.range(0.02, 0.1);
 
@@ -293,7 +293,7 @@ function generateSolarSystem(seed) {
     massKg: SOLAR_MASS,
     orbit: null,
     render: {
-      radiusWorld: 15,
+      radiusWorld: 16,
       appearance: sunType.id,
       baseColor: sunType.color,
       glowColor: sunType.glowColor,
@@ -336,7 +336,7 @@ function generateSolarSystem(seed) {
           solarMoon: isMoon
             ? {
                 name: '月球',
-                radius: 0.75,
+                radius: 0.45,
                 massEarth: 0.0123,
                 periodYears: 27.3 / 365.25,
               }

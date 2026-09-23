@@ -47,6 +47,25 @@ describe('systemGenerator', () => {
     }
   });
 
+  it('keeps planets and moons visibly smaller than their parent stars', () => {
+    for (let seed = 1; seed <= 50; seed += 1) {
+      const model = generateSystem({ mode: 'random', seed });
+      const minStarRadius = Math.min(...model.stars.map((star) => star.render.radiusWorld));
+      const maxPlanetRadius = Math.max(
+        0,
+        ...model.planets.map((planet) => planet.render.radiusWorld),
+      );
+
+      expect(maxPlanetRadius).toBeLessThan(minStarRadius * 0.62);
+
+      for (const planet of model.planets) {
+        for (const moon of planet.satellites) {
+          expect(moon.render.radiusWorld).toBeLessThan(planet.render.radiusWorld * 0.45);
+        }
+      }
+    }
+  });
+
   it('builds the solar system in the expected order', () => {
     const model = generateSystem({ mode: 'solar', seed: 7 });
 
