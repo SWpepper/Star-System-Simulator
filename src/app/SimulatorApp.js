@@ -230,6 +230,7 @@ export class SimulatorApp {
     this.renderer.domElement.removeEventListener('click', this.onClick);
     document.removeEventListener('visibilitychange', this.onVisibilityChange);
     this.systemScene.dispose();
+    this.textureFactory.dispose();
     this.workerPool.dispose();
     this.sharedTracker.disposeAll();
     this.audio.dispose();

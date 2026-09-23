@@ -5,6 +5,7 @@ import {
   NoColorSpace,
   RepeatWrapping,
   SRGBColorSpace,
+  TextureLoader,
 } from 'three';
 import { createTextureData } from './textureData.js';
 
@@ -29,6 +30,69 @@ export class TextureFactory {
     this.capabilities = capabilities;
     this.tracker = tracker;
     this.workerPool = workerPool;
+    this.assetTextures = new Map();
+  }
+
+  createFromUrl(url, options = {}) {
+    const width = options.width ?? 2048;
+    const height = options.height ?? 1024;
+    const cacheKey = `${url}|${width}|${height}|${options.colorSpace ?? 'srgb'}|${options.clamp ? 'clamp' : 'repeat'}`;
+    const cached = this.assetTextures.get(cacheKey);
+
+    if (cached) {
+      return cached;
+    }
+    const texture = new CanvasTexture(createPlaceholder(options.color ?? 0x4b5668, width, height));
+    texture.name = options.name ?? url;
+    texture.colorSpace = options.colorSpace ?? SRGBColorSpace;
+    texture.magFilter = LinearFilter;
+    texture.minFilter = LinearMipmapLinearFilter;
+    texture.generateMipmaps = true;
+
+    if (!options.clamp) {
+      texture.wrapS = RepeatWrapping;
+      texture.wrapT = RepeatWrapping;
+    }
+
+    let disposed = false;
+    const baseDispose = texture.dispose.bind(texture);
+    texture.dispose = () => {
+      if (disposed) {
+        return;
+      }
+
+      disposed = true;
+      baseDispose();
+    };
+
+    new TextureLoader().load(
+      url,
+      (loadedTexture) => {
+        if (disposed) {
+          loadedTexture.dispose();
+          return;
+        }
+
+        const context = texture.image.getContext('2d');
+        context.clearRect(0, 0, width, height);
+        context.drawImage(loadedTexture.image, 0, 0, width, height);
+        texture.needsUpdate = true;
+        loadedTexture.dispose();
+      },
+      undefined,
+      (error) => console.warn(`材质加载失败: ${url}`, error),
+    );
+
+    this.assetTextures.set(cacheKey, texture);
+    return texture;
+  }
+
+  dispose() {
+    for (const texture of this.assetTextures.values()) {
+      texture.dispose();
+    }
+
+    this.assetTextures.clear();
   }
 
   create(options) {

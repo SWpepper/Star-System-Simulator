@@ -97,7 +97,9 @@ Electron 构建和网页构建相互独立，桌面版不会请求 CDN，可离�
 
 纹理 Worker 不可用时会自动降级到低分辨率主线程生成。
 
-## 音频授权
+## 素材授权
+
+行星、卫星、太阳和行星环表面贴图来自 [Solar System Scope](https://www.solarsystemscope.com/textures/)，采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) 授权。项目将官方 TIF 法线图和镜面图转换为 WebP，并将云层和金星大气图转换为带透明通道的 WebP。
 
 背景音乐仅应在确认录音授权后随公开版本分发。若授权不明确，应在发布前移除 `src/assets/background.mp3` 及 README 中的音乐功能说明。
 

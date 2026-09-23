@@ -8,12 +8,15 @@ import {
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
+  NoColorSpace,
   PointLight,
   RingGeometry,
   ShaderMaterial,
   SphereGeometry,
+  Vector2,
   Vector3,
 } from 'three';
+import { SPECIAL_TEXTURES, getBodyCloudTextureUrl, getBodyTextureUrl } from './textureCatalog.js';
 
 const TWO_PI = Math.PI * 2;
 
@@ -75,47 +78,84 @@ export class SystemScene {
     );
     const textureSize = body.kind === 'moon' ? 256 : 512;
     const appearance = body.kind === 'moon' ? 'moon' : body.render.appearance;
+    const sourceUrl = getBodyTextureUrl(body);
+    const planetTypeId = body.meta?.planetType?.id;
     let material;
 
     if (body.kind === 'star') {
-      const texture = this.textureFactory.create({
-        kind: 'star',
-        appearance: 'star',
-        color: body.render.baseColor,
-        seed: body.render.seed,
-        width: textureSize,
-        height: textureSize / 2,
+      const texture = this.textureFactory.createFromUrl(sourceUrl, {
+        name: `${body.name}-surface`,
+        width: 2048,
+        height: 1024,
       });
       material = this.tracker.track(new MeshBasicMaterial({ map: texture }));
     } else {
-      const map = this.textureFactory.create({
-        kind: body.kind === 'moon' ? 'moon' : 'planet',
-        appearance,
-        color: body.render.baseColor,
-        seed: body.render.seed,
-        width: textureSize,
-        height: textureSize / 2,
-      });
-      const bumpMap = this.textureFactory.create({
-        kind: 'bump',
-        appearance,
-        color: 0xffffff,
-        seed: body.render.seed + 997,
-        width: this.capabilities.isLowPower ? 256 : 512,
-        height: this.capabilities.isLowPower ? 128 : 256,
-      });
+      const map = sourceUrl
+        ? this.textureFactory.createFromUrl(sourceUrl, {
+            name: `${body.name}-albedo`,
+            width: 2048,
+            height: 1024,
+          })
+        : this.textureFactory.create({
+            kind: body.kind === 'moon' ? 'moon' : 'planet',
+            appearance,
+            color: body.render.baseColor,
+            seed: body.render.seed,
+            width: textureSize,
+            height: textureSize / 2,
+          });
       const profile = planetMaterialProfile(body);
-      const emissive = new Color(body.render.baseColor).multiplyScalar(
-        body.kind === 'moon' ? 0.02 : 0.035,
-      );
+      const isEarth = planetTypeId === 'earth';
+      const normalMap = isEarth
+        ? this.textureFactory.createFromUrl(SPECIAL_TEXTURES.earthNormal, {
+            name: 'earth-normal',
+            colorSpace: NoColorSpace,
+            width: 2048,
+            height: 1024,
+          })
+        : null;
+      const roughnessMap = isEarth
+        ? this.textureFactory.createFromUrl(SPECIAL_TEXTURES.earthRoughness, {
+            name: 'earth-roughness',
+            colorSpace: NoColorSpace,
+            width: 2048,
+            height: 1024,
+          })
+        : null;
+      const emissiveMap = isEarth
+        ? this.textureFactory.createFromUrl(SPECIAL_TEXTURES.earthNight, {
+            name: 'earth-night',
+            width: 2048,
+            height: 1024,
+          })
+        : null;
+      const bumpMap =
+        isEarth || sourceUrl
+          ? null
+          : this.textureFactory.create({
+              kind: 'bump',
+              appearance,
+              color: 0xffffff,
+              seed: body.render.seed + 997,
+              width: this.capabilities.isLowPower ? 256 : 512,
+              height: this.capabilities.isLowPower ? 128 : 256,
+            });
+      const emissive = emissiveMap
+        ? new Color(0xffd8a8)
+        : new Color(body.render.baseColor).multiplyScalar(body.kind === 'moon' ? 0.02 : 0.035);
       material = this.tracker.track(
         new MeshStandardMaterial({
           map,
+          normalMap,
+          normalScale: normalMap ? new Vector2(0.82, 0.82) : undefined,
           bumpMap,
           bumpScale: body.kind === 'moon' ? 0.5 : profile.bumpScale,
+          roughnessMap,
           roughness: body.kind === 'moon' ? 0.96 : profile.roughness,
           metalness: 0,
           emissive,
+          emissiveMap,
+          emissiveIntensity: emissiveMap ? 0.78 : 1,
         }),
       );
     }
@@ -171,14 +211,21 @@ export class SystemScene {
 
     const width = this.capabilities.isLowPower ? 256 : 512;
     const height = this.capabilities.isLowPower ? 128 : 256;
-    const cloudTexture = this.textureFactory.create({
-      kind: 'cloud',
-      appearance: body.render.appearance,
-      color: 0xffffff,
-      seed: body.render.seed + 1777,
-      width,
-      height,
-    });
+    const cloudUrl = getBodyCloudTextureUrl(body);
+    const cloudTexture = cloudUrl
+      ? this.textureFactory.createFromUrl(cloudUrl, {
+          name: `${body.name}-clouds`,
+          width: 2048,
+          height: 1024,
+        })
+      : this.textureFactory.create({
+          kind: 'cloud',
+          appearance: body.render.appearance,
+          color: 0xffffff,
+          seed: body.render.seed + 1777,
+          width,
+          height,
+        });
     const geometry = this.tracker.track(
       new SphereGeometry(body.render.radiusWorld * 1.015, 48, 32),
     );
@@ -262,13 +309,11 @@ export class SystemScene {
       const ringGeometry = this.tracker.track(
         new RingGeometry(planet.render.radiusWorld * 1.42, planet.render.radiusWorld * 2.9, 160, 3),
       );
-      const ringTexture = this.textureFactory.create({
-        kind: 'ring',
-        appearance: 'ring',
-        color: planet.render.baseColor,
-        seed: planet.render.seed + 31,
-        width: 1024,
-        height: 128,
+      const ringTexture = this.textureFactory.createFromUrl(SPECIAL_TEXTURES.saturnRing, {
+        name: `${planet.name}-ring`,
+        width: 2048,
+        height: 1024,
+        clamp: true,
       });
       const ringMaterial = this.tracker.track(
         new MeshStandardMaterial({
