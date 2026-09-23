@@ -1,0 +1,7 @@
+/assets/
+/dist/
+/release/
+/index.html
+/node_modules/
+/playwright-report/
+/test-results/
