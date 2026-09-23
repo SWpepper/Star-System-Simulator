@@ -1,10 +1,16 @@
 import {
   AdditiveBlending,
+  AmbientLight,
+  BackSide,
+  Color,
   DoubleSide,
   Group,
   Mesh,
   MeshBasicMaterial,
+  MeshStandardMaterial,
+  PointLight,
   RingGeometry,
+  ShaderMaterial,
   SphereGeometry,
   Vector3,
 } from 'three';
@@ -17,6 +23,21 @@ function orbitalAngle(body, elapsedYears) {
   }
 
   return body.orbit.phase + (elapsedYears / body.orbit.periodYears) * TWO_PI;
+}
+
+function planetMaterialProfile(body) {
+  switch (body.render.appearance) {
+    case 'gas':
+      return { roughness: 0.74, bumpScale: 0.12, atmosphere: null, intensity: 0 };
+    case 'ice':
+      return { roughness: 0.38, bumpScale: 0.3, atmosphere: 0x8de8ff, intensity: 0.18 };
+    case 'earth':
+      return { roughness: 0.72, bumpScale: 0.42, atmosphere: 0x62c4ff, intensity: 0.32 };
+    case 'cloudy':
+      return { roughness: 0.7, bumpScale: 0.34, atmosphere: 0xffd28a, intensity: 0.26 };
+    default:
+      return { roughness: 0.94, bumpScale: 0.48, atmosphere: 0x7089b5, intensity: 0.1 };
+  }
 }
 
 export class SystemScene {
@@ -36,6 +57,7 @@ export class SystemScene {
     this.model = model;
     this.root = new Group();
     this.root.name = `system-${model.seed}`;
+    this.root.add(new AmbientLight(0x26334f, 0.78));
     this.scene.add(this.root);
 
     for (const star of model.stars) {
@@ -51,15 +73,53 @@ export class SystemScene {
     const geometry = this.tracker.track(
       new SphereGeometry(radius, segments, Math.max(16, Math.round(segments / 2))),
     );
-    const texture = this.textureFactory.create({
-      kind: body.kind === 'star' ? 'star' : body.kind === 'moon' ? 'moon' : 'planet',
-      appearance: body.render.appearance,
-      color: body.render.baseColor,
-      seed: body.render.seed,
-      width: body.kind === 'moon' ? 256 : 512,
-      height: body.kind === 'moon' ? 128 : 256,
-    });
-    const material = this.tracker.track(new MeshBasicMaterial({ map: texture }));
+    const textureSize = body.kind === 'moon' ? 256 : 512;
+    const appearance = body.kind === 'moon' ? 'moon' : body.render.appearance;
+    let material;
+
+    if (body.kind === 'star') {
+      const texture = this.textureFactory.create({
+        kind: 'star',
+        appearance: 'star',
+        color: body.render.baseColor,
+        seed: body.render.seed,
+        width: textureSize,
+        height: textureSize / 2,
+      });
+      material = this.tracker.track(new MeshBasicMaterial({ map: texture }));
+    } else {
+      const map = this.textureFactory.create({
+        kind: body.kind === 'moon' ? 'moon' : 'planet',
+        appearance,
+        color: body.render.baseColor,
+        seed: body.render.seed,
+        width: textureSize,
+        height: textureSize / 2,
+      });
+      const bumpMap = this.textureFactory.create({
+        kind: 'bump',
+        appearance,
+        color: 0xffffff,
+        seed: body.render.seed + 997,
+        width: this.capabilities.isLowPower ? 256 : 512,
+        height: this.capabilities.isLowPower ? 128 : 256,
+      });
+      const profile = planetMaterialProfile(body);
+      const emissive = new Color(body.render.baseColor).multiplyScalar(
+        body.kind === 'moon' ? 0.02 : 0.035,
+      );
+      material = this.tracker.track(
+        new MeshStandardMaterial({
+          map,
+          bumpMap,
+          bumpScale: body.kind === 'moon' ? 0.5 : profile.bumpScale,
+          roughness: body.kind === 'moon' ? 0.96 : profile.roughness,
+          metalness: 0,
+          emissive,
+        }),
+      );
+    }
+
     const mesh = new Mesh(geometry, material);
     mesh.name = body.name;
     mesh.userData.body = body;
@@ -71,16 +131,20 @@ export class SystemScene {
     const segments = this.capabilities.isLowPower ? 32 : 64;
     const mesh = this.createSphere(star.render.radiusWorld, star, segments);
     const glowGroup = this.createGlow(star.render.radiusWorld, star.render.glowColor);
+    const light = new PointLight(star.render.glowColor, 2.15, 0, 0);
+    light.name = `${star.name}-light`;
+    light.position.copy(mesh.position);
+    this.root.add(light);
     this.root.add(glowGroup);
-    this.views.set(star.id, { body: star, mesh, glowGroup, parentId: null });
+    this.views.set(star.id, { body: star, mesh, glowGroup, light, parentId: null });
   }
 
   createGlow(radius, color) {
     const group = new Group();
     const layers = [
-      { scale: 1.18, opacity: 0.24 },
-      { scale: 1.42, opacity: 0.13 },
-      { scale: 1.78, opacity: 0.06 },
+      { scale: 1.15, opacity: 0.14 },
+      { scale: 1.36, opacity: 0.072 },
+      { scale: 1.7, opacity: 0.032 },
     ];
 
     for (const layer of layers) {
@@ -100,29 +164,122 @@ export class SystemScene {
     return group;
   }
 
+  createCloudLayer(body) {
+    if (!['earth', 'cloudy', 'ice'].includes(body.render.appearance)) {
+      return null;
+    }
+
+    const width = this.capabilities.isLowPower ? 256 : 512;
+    const height = this.capabilities.isLowPower ? 128 : 256;
+    const cloudTexture = this.textureFactory.create({
+      kind: 'cloud',
+      appearance: body.render.appearance,
+      color: 0xffffff,
+      seed: body.render.seed + 1777,
+      width,
+      height,
+    });
+    const geometry = this.tracker.track(
+      new SphereGeometry(body.render.radiusWorld * 1.015, 48, 32),
+    );
+    const material = this.tracker.track(
+      new MeshStandardMaterial({
+        map: cloudTexture,
+        transparent: true,
+        opacity: body.render.appearance === 'ice' ? 0.28 : 0.68,
+        depthWrite: false,
+        alphaTest: 0.015,
+        roughness: 1,
+        metalness: 0,
+      }),
+    );
+    const cloudMesh = new Mesh(geometry, material);
+    cloudMesh.name = `${body.name}-clouds`;
+    cloudMesh.rotation.z = body.render.seed % 2 ? 0.12 : -0.12;
+    return cloudMesh;
+  }
+
+  createAtmosphere(body) {
+    const profile = planetMaterialProfile(body);
+    if (!profile.atmosphere || profile.intensity <= 0) {
+      return null;
+    }
+
+    const geometry = this.tracker.track(
+      new SphereGeometry(body.render.radiusWorld * 1.075, 48, 32),
+    );
+    const material = this.tracker.track(
+      new ShaderMaterial({
+        uniforms: {
+          glowColor: { value: new Color(profile.atmosphere) },
+          intensity: { value: profile.intensity },
+        },
+        vertexShader: `
+          varying vec3 vNormal;
+          varying vec3 vWorldPosition;
+          void main() {
+            vNormal = normalize(mat3(modelMatrix) * normal);
+            vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+            vWorldPosition = worldPosition.xyz;
+            gl_Position = projectionMatrix * viewMatrix * worldPosition;
+          }
+        `,
+        fragmentShader: `
+          uniform vec3 glowColor;
+          uniform float intensity;
+          varying vec3 vNormal;
+          varying vec3 vWorldPosition;
+          void main() {
+            vec3 viewDirection = normalize(cameraPosition - vWorldPosition);
+            float rim = pow(1.0 - abs(dot(normalize(vNormal), viewDirection)), 2.6);
+            gl_FragColor = vec4(glowColor, rim * intensity);
+          }
+        `,
+        transparent: true,
+        depthWrite: false,
+        side: BackSide,
+        blending: AdditiveBlending,
+      }),
+    );
+    return new Mesh(geometry, material);
+  }
+
   createPlanet(planet) {
     const segments = this.capabilities.isLowPower ? 32 : 64;
     const mesh = this.createSphere(planet.render.radiusWorld, planet, segments);
+    const cloudMesh = this.createCloudLayer(planet);
+    const atmosphere = this.createAtmosphere(planet);
+
+    if (cloudMesh) {
+      mesh.add(cloudMesh);
+    }
+
+    if (atmosphere) {
+      mesh.add(atmosphere);
+    }
 
     if (planet.render.hasRings) {
       const ringGeometry = this.tracker.track(
-        new RingGeometry(planet.render.radiusWorld * 1.4, planet.render.radiusWorld * 2.8, 96),
+        new RingGeometry(planet.render.radiusWorld * 1.42, planet.render.radiusWorld * 2.9, 160, 3),
       );
       const ringTexture = this.textureFactory.create({
         kind: 'ring',
         appearance: 'ring',
         color: planet.render.baseColor,
         seed: planet.render.seed + 31,
-        width: 512,
-        height: 64,
+        width: 1024,
+        height: 128,
       });
       const ringMaterial = this.tracker.track(
-        new MeshBasicMaterial({
+        new MeshStandardMaterial({
           map: ringTexture,
           transparent: true,
           side: DoubleSide,
-          opacity: 0.9,
+          opacity: 0.96,
           depthWrite: false,
+          roughness: 0.82,
+          metalness: 0,
+          emissive: new Color(planet.render.baseColor).multiplyScalar(0.04),
         }),
       );
       const rings = new Mesh(ringGeometry, ringMaterial);
@@ -130,7 +287,14 @@ export class SystemScene {
       mesh.add(rings);
     }
 
-    this.views.set(planet.id, { body: planet, mesh, glowGroup: null, parentId: planet.parentId });
+    this.views.set(planet.id, {
+      body: planet,
+      mesh,
+      cloudMesh,
+      glowGroup: null,
+      light: null,
+      parentId: planet.parentId,
+    });
     this.createOrbit(planet.orbit);
 
     for (const moon of planet.satellites) {
@@ -140,7 +304,14 @@ export class SystemScene {
         this.capabilities.isLowPower ? 20 : 32,
       );
       mesh.add(moonMesh);
-      this.views.set(moon.id, { body: moon, mesh: moonMesh, glowGroup: null, parentId: planet.id });
+      this.views.set(moon.id, {
+        body: moon,
+        mesh: moonMesh,
+        cloudMesh: null,
+        glowGroup: null,
+        light: null,
+        parentId: planet.id,
+      });
     }
   }
 
@@ -169,7 +340,7 @@ export class SystemScene {
 
   update(elapsedYears, deltaSeconds = 0) {
     for (const view of this.views.values()) {
-      const { body, mesh, glowGroup } = view;
+      const { body, mesh, glowGroup, light, cloudMesh } = view;
 
       if (body.kind === 'star' && body.orbit) {
         const angle = orbitalAngle(body, elapsedYears);
@@ -201,6 +372,14 @@ export class SystemScene {
 
       if (glowGroup) {
         glowGroup.position.copy(mesh.position);
+      }
+
+      if (light) {
+        light.position.copy(mesh.position);
+      }
+
+      if (cloudMesh) {
+        cloudMesh.rotation.y += deltaSeconds * 0.035;
       }
     }
   }

@@ -1,4 +1,5 @@
 import {
+  ACESFilmicToneMapping,
   Timer,
   Color,
   PerspectiveCamera,
@@ -54,6 +55,8 @@ export class SimulatorApp {
     this.camera.position.set(0, 100, 200);
 
     this.renderer = new WebGLRenderer({ antialias: !this.capabilities.isLowPower });
+    this.renderer.toneMapping = ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.08;
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.capabilities.maxPixelRatio));
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.container.appendChild(this.renderer.domElement);

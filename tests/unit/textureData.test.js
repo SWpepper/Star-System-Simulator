@@ -14,4 +14,23 @@ describe('createTextureData', () => {
 
     expect(createTextureData(options)).toEqual(createTextureData(options));
   });
+  it('creates detailed bump and cloud channels', () => {
+    const common = {
+      appearance: 'earth',
+      color: 0x4a90d9,
+      seed: 42,
+      width: 64,
+      height: 32,
+    };
+    const bump = createTextureData({ ...common, kind: 'bump' });
+    const cloud = createTextureData({ ...common, kind: 'cloud' });
+    const cloudAlpha = [];
+    for (let index = 3; index < cloud.length; index += 4) {
+      cloudAlpha.push(cloud[index]);
+    }
+
+    expect(new Set(bump).size).toBeGreaterThan(8);
+    expect(Math.min(...cloudAlpha)).toBe(0);
+    expect(Math.max(...cloudAlpha)).toBeGreaterThan(0);
+  });
 });

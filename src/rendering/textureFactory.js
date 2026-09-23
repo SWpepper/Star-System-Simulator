@@ -1,4 +1,11 @@
-import { CanvasTexture, RepeatWrapping, SRGBColorSpace } from 'three';
+import {
+  CanvasTexture,
+  LinearFilter,
+  LinearMipmapLinearFilter,
+  NoColorSpace,
+  RepeatWrapping,
+  SRGBColorSpace,
+} from 'three';
 import { createTextureData } from './textureData.js';
 
 function createPlaceholder(color, width, height) {
@@ -28,9 +35,13 @@ export class TextureFactory {
     const scale = this.capabilities.textureScale;
     const width = Math.max(64, Math.round(options.width * scale));
     const height = Math.max(32, Math.round(options.height * scale));
-    const texture = new CanvasTexture(createPlaceholder(options.color ?? 0x888888, width, height));
-    texture.colorSpace = SRGBColorSpace;
+    const placeholderColor = options.kind === 'bump' ? 0x8a8a8a : (options.color ?? 0x888888);
+    const texture = new CanvasTexture(createPlaceholder(placeholderColor, width, height));
+    texture.colorSpace = options.kind === 'bump' ? NoColorSpace : SRGBColorSpace;
     texture.name = `${options.kind}-${options.seed}`;
+    texture.magFilter = LinearFilter;
+    texture.minFilter = LinearMipmapLinearFilter;
+    texture.generateMipmaps = true;
 
     if (options.kind !== 'ring') {
       texture.wrapS = RepeatWrapping;
