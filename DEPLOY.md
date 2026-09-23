@@ -1,82 +1,74 @@
-# 快速部署指南
+# 部署指南
 
-## 最快方案：Netlify（5分钟上线）
+## 当前 GitHub Pages 分支部署
 
-1. 访问 https://netlify.com
-2. 用 GitHub 账号登录（如果没有 GitHub 先注册一个）
-3. 点击 "Add new site" → "Deploy manually"
-4. 将以下文件拖入上传区域：
-   - `index.html`
-   - `css/style.css`
-   - `js/main.js`
-   - `assets/` 文件夹（如果要音乐）
-5. 上传后等1分钟，网站就上线了！
+当前仓库直接从 `main` 分支根目录发布，不需要修改 GitHub Pages 设置。
 
-## 永久免费方案：GitHub Pages
+更新源码后执行：
 
-### 步骤1：创建 GitHub 仓库
-1. 访问 https://github.com/new
-2. 仓库名：比如 `star-simulator`
-3. 选择 Public（公开）
-4. 点击 "Create repository"
-
-### 步骤2：上传文件
-在新仓库页面，点击 "uploading an existing file"，然后上传：
-- `index.html`
-- `css/style.css`
-- `js/main.js`
-- `assets/background.mp3`（可选）
-- `README.md`
-- `.gitignore`
-
-### 步骤3：开启 Pages
-1. 进入仓库 Settings
-2. 左侧菜单找到 "Pages"
-3. Source 选择 "main" 分支
-4. 点击 "Save"
-5. 等 2-5 分钟，网站就上线了！
-
-## 本地预览测试
-
-### Python（最简单）
-```bash
-python -m http.server 8080
+```powershell
+npm ci
+npm run lint
+npm test
+npm run build:pages
+git add index.html favicon.svg assets
+git commit -m "build: update GitHub Pages"
+git push origin main
 ```
 
-然后访问 http://localhost:8080
+`npm run build:pages` 会先生成 `dist/web`，再把可直接托管的 `index.html`、`favicon.svg` 和 `assets/` 同步到仓库根目录。
 
-### Node.js（更快）
+Vite 的 `base` 配置为 `./`，因此仓库部署在 `https://<user>.github.io/<repo>/` 时不需要额外修改路径。
+
+## 可选：切换到 GitHub Actions 部署
+
+1. 打开仓库 **Settings → Pages**。
+2. 在 **Build and deployment** 中将 Source 设置为 **GitHub Actions**。
+3. 推送代码或手动运行 `Deploy GitHub Pages` workflow。
+4. workflow 会依次执行依赖安装、lint、单元测试、Vite 构建和 Pages 部署。
+
+切换后不需要再提交根目录构建产物。
+
+## 本地验收网页构建
+
 ```bash
-npx serve
+npm ci
+npm run lint
+npm test
+npm run build:web
+npm run preview
 ```
 
-## 必要文件清单
+打开终端输出的本地地址检查随机恒星系、太阳系、时间控制、天体详情和音乐按钮。
 
-✅ **必须的**：
-- index.html
-- css/style.css
-- js/main.js
+## 构建 Windows 桌面版
 
-🔧 **可选的**：
-- assets/background.mp3（音乐）
-- README.md（说明文档）
-- .gitignore（Git忽略文件）
+```bash
+npm ci
+npm run build:electron
+```
 
-## 免费平台对比
+安装包输出到 `release/`。桌面版加载 `dist/web`，不依赖外部 CDN。
 
-| 平台 | 速度 | 难度 | 自定义域名 | 推荐度 |
-|------|------|------|-----------|--------|
-| Netlify | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ✅ | ⭐⭐⭐⭐⭐ |
-| GitHub Pages | ⭐⭐⭐⭐ | ⭐⭐⭐ | ✅ | ⭐⭐⭐⭐ |
-| Vercel | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ✅ | ⭐⭐⭐⭐ |
+## 自定义域名
+
+在 GitHub Pages 设置中添加自定义域名，并按 GitHub 提示配置 DNS。应用本身使用相对资源路径，不需要重新构建。
 
 ## 常见问题
 
-**Q: 网站上线后多久能访问？**
-A: GitHub Pages 需要 2-5 分钟，Netlify 1分钟内。
+**页面一直显示“正在生成恒星系”？**
 
-**Q: 音乐文件太大怎么办？**
-A: 如果不想要音乐，可以删除 assets 文件夹，js/main.js 会自动处理。
+检查浏览器控制台和 WebGL 支持。应用应自动尝试主线程纹理降级；如果仍失败，页面会显示明确错误信息。
 
-**Q: 可以用自己的域名吗？**
-A: 可以！GitHub Pages 和 Netlify 都支持自定义域名。
+**Electron 启动后是空白页？**
+
+先执行 `npm run build:web` 生成 `dist/web`，再运行 `npm start`。
+
+**端到端测试提示缺少 Chromium？**
+
+CI 会执行 `npx playwright install --with-deps chromium`。本地也可使用已安装的 Edge：
+
+```powershell
+$env:PLAYWRIGHT_CHANNEL='msedge'
+npm run test:e2e
+```
