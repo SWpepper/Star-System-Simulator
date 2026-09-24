@@ -5,6 +5,7 @@ import {
   Color,
   DoubleSide,
   Group,
+  HemisphereLight,
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
@@ -31,15 +32,15 @@ function orbitalAngle(body, elapsedYears) {
 function planetMaterialProfile(body) {
   switch (body.render.appearance) {
     case 'gas':
-      return { roughness: 0.74, bumpScale: 0.12, atmosphere: null, intensity: 0 };
+      return { roughness: 0.74, bumpScale: 0.12, atmosphere: 0xd8b77a, intensity: 0.12 };
     case 'ice':
-      return { roughness: 0.38, bumpScale: 0.3, atmosphere: 0x8de8ff, intensity: 0.18 };
+      return { roughness: 0.38, bumpScale: 0.3, atmosphere: 0x8de8ff, intensity: 0.28 };
     case 'earth':
-      return { roughness: 0.72, bumpScale: 0.42, atmosphere: 0x62c4ff, intensity: 0.32 };
+      return { roughness: 0.72, bumpScale: 0.42, atmosphere: 0x62c4ff, intensity: 0.46 };
     case 'cloudy':
-      return { roughness: 0.7, bumpScale: 0.34, atmosphere: 0xffd28a, intensity: 0.26 };
+      return { roughness: 0.7, bumpScale: 0.34, atmosphere: 0xffd28a, intensity: 0.36 };
     default:
-      return { roughness: 0.94, bumpScale: 0.48, atmosphere: 0x7089b5, intensity: 0.1 };
+      return { roughness: 0.94, bumpScale: 0.48, atmosphere: 0x7089b5, intensity: 0.16 };
   }
 }
 
@@ -60,7 +61,8 @@ export class SystemScene {
     this.model = model;
     this.root = new Group();
     this.root.name = `system-${model.seed}`;
-    this.root.add(new AmbientLight(0x26334f, 0.78));
+    this.root.add(new AmbientLight(0x526685, 1.35));
+    this.root.add(new HemisphereLight(0xdce9ff, 0x111725, 1.08));
     this.scene.add(this.root);
 
     for (const star of model.stars) {
@@ -88,7 +90,13 @@ export class SystemScene {
         width: 2048,
         height: 1024,
       });
-      material = this.tracker.track(new MeshBasicMaterial({ map: texture }));
+      material = this.tracker.track(
+        new MeshBasicMaterial({
+          map: texture,
+          color: new Color(body.render.baseColor),
+          toneMapped: false,
+        }),
+      );
     } else {
       const map = sourceUrl
         ? this.textureFactory.createFromUrl(sourceUrl, {
@@ -171,7 +179,7 @@ export class SystemScene {
     const segments = this.capabilities.isLowPower ? 32 : 64;
     const mesh = this.createSphere(star.render.radiusWorld, star, segments);
     const glowGroup = this.createGlow(star.render.radiusWorld, star.render.glowColor);
-    const light = new PointLight(star.render.glowColor, 2.15, 0, 0);
+    const light = new PointLight(star.render.glowColor, 3.35, 0, 0);
     light.name = `${star.name}-light`;
     light.position.copy(mesh.position);
     this.root.add(light);

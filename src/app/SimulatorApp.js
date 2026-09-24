@@ -56,7 +56,7 @@ export class SimulatorApp {
 
     this.renderer = new WebGLRenderer({ antialias: !this.capabilities.isLowPower });
     this.renderer.toneMapping = ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.08;
+    this.renderer.toneMappingExposure = 1.26;
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.capabilities.maxPixelRatio));
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.container.appendChild(this.renderer.domElement);

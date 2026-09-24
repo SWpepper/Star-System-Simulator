@@ -10,7 +10,7 @@ import moonUrl from '../assets/textures/2k_moon.jpg?url';
 import neptuneUrl from '../assets/textures/2k_neptune.jpg?url';
 import saturnRingUrl from '../assets/textures/2k_saturn_ring_alpha.png?url';
 import saturnUrl from '../assets/textures/2k_saturn.jpg?url';
-import sunUrl from '../assets/textures/2k_sun.jpg?url';
+import sunUrl from '../assets/textures/2k_sun_grayscale.webp?url';
 import uranusUrl from '../assets/textures/2k_uranus.jpg?url';
 import venusAtmosphereUrl from '../assets/textures/2k_venus_atmosphere.webp?url';
 import venusSurfaceUrl from '../assets/textures/2k_venus_surface.jpg?url';

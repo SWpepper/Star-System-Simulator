@@ -48,6 +48,7 @@ export class TextureFactory {
     texture.magFilter = LinearFilter;
     texture.minFilter = LinearMipmapLinearFilter;
     texture.generateMipmaps = true;
+    texture.anisotropy = this.capabilities.isLowPower ? 2 : 8;
 
     if (!options.clamp) {
       texture.wrapS = RepeatWrapping;
@@ -106,6 +107,7 @@ export class TextureFactory {
     texture.magFilter = LinearFilter;
     texture.minFilter = LinearMipmapLinearFilter;
     texture.generateMipmaps = true;
+    texture.anisotropy = this.capabilities.isLowPower ? 2 : 8;
 
     if (options.kind !== 'ring') {
       texture.wrapS = RepeatWrapping;
