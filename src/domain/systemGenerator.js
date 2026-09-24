@@ -84,7 +84,7 @@ function createStar({ rng, seed, index, nameSuffix = '' }) {
     massKg: SOLAR_MASS * massMultiplier,
     orbit: null,
     render: {
-      radiusWorld: 8 + Math.pow(massMultiplier, 0.34) * 5.2,
+      radiusWorld: 7.4 + Math.pow(massMultiplier, 0.33) * 4.8,
       appearance: starType.id,
       baseColor: starType.color,
       glowColor: starType.glowColor,
@@ -293,7 +293,7 @@ function generateSolarSystem(seed) {
     massKg: SOLAR_MASS,
     orbit: null,
     render: {
-      radiusWorld: 16,
+      radiusWorld: 14.5,
       appearance: sunType.id,
       baseColor: sunType.color,
       glowColor: sunType.glowColor,

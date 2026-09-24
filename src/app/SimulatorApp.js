@@ -87,6 +87,7 @@ export class SimulatorApp {
       textureFactory: this.textureFactory,
       tracker: this.systemTracker,
       capabilities: this.capabilities,
+      camera: this.camera,
     });
 
     this.ui = new UIController({
