@@ -2,6 +2,7 @@ import {
   AdditiveBlending,
   AmbientLight,
   BackSide,
+  CanvasTexture,
   Color,
   DoubleSide,
   Group,
@@ -12,8 +13,11 @@ import {
   NoColorSpace,
   PointLight,
   RingGeometry,
+  SRGBColorSpace,
   ShaderMaterial,
   SphereGeometry,
+  Sprite,
+  SpriteMaterial,
   Vector2,
   Vector3,
 } from 'three';
@@ -61,8 +65,8 @@ export class SystemScene {
     this.model = model;
     this.root = new Group();
     this.root.name = `system-${model.seed}`;
-    this.root.add(new AmbientLight(0x526685, 1.35));
-    this.root.add(new HemisphereLight(0xdce9ff, 0x111725, 1.08));
+    this.root.add(new AmbientLight(0x5d7192, 1.52));
+    this.root.add(new HemisphereLight(0xe8f1ff, 0x182033, 1.3));
     this.scene.add(this.root);
 
     for (const star of model.stars) {
@@ -93,7 +97,7 @@ export class SystemScene {
       material = this.tracker.track(
         new MeshBasicMaterial({
           map: texture,
-          color: new Color(body.render.baseColor),
+          color: new Color(body.render.baseColor).lerp(new Color(0xffffff), 0.22),
           toneMapped: false,
         }),
       );
@@ -179,7 +183,7 @@ export class SystemScene {
     const segments = this.capabilities.isLowPower ? 32 : 64;
     const mesh = this.createSphere(star.render.radiusWorld, star, segments);
     const glowGroup = this.createGlow(star.render.radiusWorld, star.render.glowColor);
-    const light = new PointLight(star.render.glowColor, 3.35, 0, 0);
+    const light = new PointLight(star.render.glowColor, 4.15, 0, 0);
     light.name = `${star.name}-light`;
     light.position.copy(mesh.position);
     this.root.add(light);
@@ -187,26 +191,52 @@ export class SystemScene {
     this.views.set(star.id, { body: star, mesh, glowGroup, light, parentId: null });
   }
 
+  createGlowTexture() {
+    if (this.glowTexture) {
+      return this.glowTexture;
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 256;
+    const context = canvas.getContext('2d');
+    const gradient = context.createRadialGradient(128, 128, 0, 128, 128, 128);
+    gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    gradient.addColorStop(0.12, 'rgba(255, 255, 255, 0.82)');
+    gradient.addColorStop(0.3, 'rgba(255, 255, 255, 0.32)');
+    gradient.addColorStop(0.62, 'rgba(255, 255, 255, 0.08)');
+    gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, canvas.width, canvas.height);
+
+    this.glowTexture = this.tracker.track(new CanvasTexture(canvas));
+    this.glowTexture.colorSpace = SRGBColorSpace;
+    return this.glowTexture;
+  }
+
   createGlow(radius, color) {
     const group = new Group();
+    const texture = this.createGlowTexture();
     const layers = [
-      { scale: 1.15, opacity: 0.14 },
-      { scale: 1.36, opacity: 0.072 },
-      { scale: 1.7, opacity: 0.032 },
+      { scale: 2.8, opacity: 0.52 },
+      { scale: 4.6, opacity: 0.2 },
     ];
 
     for (const layer of layers) {
-      const geometry = this.tracker.track(new SphereGeometry(radius * layer.scale, 32, 24));
       const material = this.tracker.track(
-        new MeshBasicMaterial({
+        new SpriteMaterial({
+          map: texture,
           color,
           transparent: true,
           opacity: layer.opacity,
           depthWrite: false,
           blending: AdditiveBlending,
+          toneMapped: false,
         }),
       );
-      group.add(new Mesh(geometry, material));
+      const sprite = new Sprite(material);
+      sprite.scale.set(radius * layer.scale, radius * layer.scale, 1);
+      group.add(sprite);
     }
 
     return group;
@@ -474,6 +504,7 @@ export class SystemScene {
     }
 
     this.tracker.disposeAll();
+    this.glowTexture = null;
     this.views.clear();
     this.model = null;
   }

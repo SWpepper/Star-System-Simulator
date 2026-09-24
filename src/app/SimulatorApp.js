@@ -54,17 +54,19 @@ export class SimulatorApp {
     this.camera = new PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 10000);
     this.camera.position.set(0, 100, 200);
 
-    this.renderer = new WebGLRenderer({ antialias: !this.capabilities.isLowPower });
+    this.renderer = new WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     this.renderer.toneMapping = ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.26;
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.capabilities.maxPixelRatio));
+    this.renderer.setPixelRatio(this.resolvePixelRatio());
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.container.appendChild(this.renderer.domElement);
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.05;
-    this.controls.minDistance = 20;
+    this.controls.minDistance = 2.5;
+    this.controls.zoomSpeed = 1.35;
+    this.controls.zoomToCursor = true;
     this.controls.maxDistance = 2000;
     this.controls.target.set(0, 0, 0);
 
@@ -127,6 +129,7 @@ export class SimulatorApp {
 
   loadSystem(model) {
     this.selectedBodyId = null;
+    this.controls.minDistance = 2.5;
     this.targetPosition.set(0, 0, 0);
     this.controls.target.set(0, 0, 0);
     this.camera.position.set(0, 100, 200);
@@ -159,6 +162,7 @@ export class SimulatorApp {
     }
 
     this.selectedBodyId = bodyId;
+    this.controls.minDistance = Math.max(1.2, body.render.radiusWorld * 1.15);
     this.ui.showInfo(body, this.systemScene.model);
   }
 
@@ -212,10 +216,17 @@ export class SimulatorApp {
     }
   }
 
+  resolvePixelRatio() {
+    return Math.min(
+      Math.max(window.devicePixelRatio, this.capabilities.minPixelRatio),
+      this.capabilities.maxPixelRatio,
+    );
+  }
+
   resize() {
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.capabilities.maxPixelRatio));
+    this.renderer.setPixelRatio(this.resolvePixelRatio());
     this.renderer.setSize(window.innerWidth, window.innerHeight);
   }
 

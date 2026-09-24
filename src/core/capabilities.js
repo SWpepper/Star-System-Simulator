@@ -9,7 +9,8 @@ export function detectCapabilities() {
   return {
     isLowPower,
     supportsOffscreenCanvas,
-    maxPixelRatio: isLowPower ? 1.25 : 2,
+    minPixelRatio: isLowPower ? 1.15 : 1.5,
+    maxPixelRatio: isLowPower ? 1.5 : 2.25,
     starCount: isLowPower ? 2200 : 5000,
     textureScale: isLowPower ? 0.5 : 1,
     workerCount: supportsOffscreenCanvas ? Math.min(2, Math.max(1, Math.floor(cores / 4))) : 0,
